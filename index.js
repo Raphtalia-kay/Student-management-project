@@ -1,15 +1,17 @@
 import express from "express";
 import connectDB from "./config/db.js";
 import dotenv from "dotenv";
+import studentRoutes from "./routes/studentRoutes.js";
 
 dotenv.config();
 const app = express();
 await connectDB();
 
-
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+
+app.use("/students", studentRoutes);
 app.get("/", (req, res) => {
   res.send("Welcome to our express app");
 });
