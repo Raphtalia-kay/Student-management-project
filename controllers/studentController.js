@@ -81,7 +81,7 @@ const searchByName = async (req, res) => {
     }
     const students = await Student.find({
       name: {
-        $regex: searchName,
+        $regex: searchName.trim(),
         $options: "i",
       },
     });
