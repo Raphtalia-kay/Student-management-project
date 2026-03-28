@@ -8,8 +8,10 @@ const {
   createStudent,
   updateStudent,
   deleteStudent,
+  searchByName,
 } = studentController;
 router.get("/", getAllStudents);
+router.get("/search", searchByName);
 router.get("/:id", getStudentById);
 router.post("/", createStudent);
 router.put("/:id", updateStudent);

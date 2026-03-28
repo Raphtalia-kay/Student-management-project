@@ -73,10 +73,30 @@ const deleteStudent = async (req, res) => {
   }
 };
 
+const searchByName = async (req, res) => {
+  try {
+    const searchName = req.query.name;
+    if (!searchName) {
+      res.status(400).json({ message: "Name query is required" });
+    }
+    const students = await Student.find({
+      name: {
+        $regex: searchName,
+        $options: "i",
+      },
+    });
+
+    res.status(201).json(students);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export default {
   getAllStudents,
   getStudentById,
   createStudent,
   updateStudent,
   deleteStudent,
+  searchByName,
 };
