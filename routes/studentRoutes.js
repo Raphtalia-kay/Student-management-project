@@ -9,9 +9,11 @@ const {
   updateStudent,
   deleteStudent,
   searchByName,
+  filterByMajor
 } = studentController;
 router.get("/", getAllStudents);
 router.get("/search", searchByName);
+router.get("/search", filterByMajor);
 router.get("/:id", getStudentById);
 router.post("/", createStudent);
 router.put("/:id", updateStudent);

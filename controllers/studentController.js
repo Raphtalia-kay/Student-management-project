@@ -77,7 +77,7 @@ const searchByName = async (req, res) => {
   try {
     const searchName = req.query.name;
     if (!searchName) {
-      res.status(400).json({ message: "Name query is required" });
+      return res.status(400).json({ message: "Name query is required" });
     }
     const students = await Student.find({
       name: {
@@ -91,6 +91,23 @@ const searchByName = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+const filterByMajor = async (req, res) => {
+  try {
+    const { major, name } = req.query;
+    const filter = {};
+    if (major) {
+      filter.major = major;
+      filter.name = {
+        $regex: name.trim(),
+        $options: "i",
+      };
+    }
+    const students = await Student.find(filter);
+    res.status(200).json(students);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 export default {
   getAllStudents,
@@ -99,4 +116,5 @@ export default {
   updateStudent,
   deleteStudent,
   searchByName,
+  filterByMajor,
 };
