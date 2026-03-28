@@ -97,12 +97,43 @@ const filterByMajor = async (req, res) => {
     const filter = {};
     if (major) {
       filter.major = major;
+    }
+    if (name) {
       filter.name = {
         $regex: name.trim(),
         $options: "i",
       };
     }
     const students = await Student.find(filter);
+    res.status(200).json(students);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+const sortFilter = async (req, res) => {
+  try {
+    const { sort } = req.query;
+ 
+    // default sort ( newest )
+    let sortOption = {
+      createdAt: -1,
+    };
+    if (sort) {
+      const sortMode = ["name", "age", "createdAt"];
+      let sortField = sort;
+      let sortDirection = 1;
+      if (sort.startsWith("-")) {
+        sortField = sort.substring(1);
+        sortDirection = -1;
+      }
+      if (sortMode.includes(sortField)) {
+        sortOption = {
+          [sortField]: sortDirection,
+        };
+      }
+    }
+
+    const students = await Student.find().sort(sortOption);
     res.status(200).json(students);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -117,4 +148,5 @@ export default {
   deleteStudent,
   searchByName,
   filterByMajor,
+  sortFilter,
 };

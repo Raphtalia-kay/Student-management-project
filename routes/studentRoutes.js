@@ -3,17 +3,17 @@ import express from "express";
 
 const router = express.Router();
 const {
-  getAllStudents,
   getStudentById,
   createStudent,
   updateStudent,
   deleteStudent,
   searchByName,
-  filterByMajor
+  filterByMajor,
+  sortFilter
 } = studentController;
-router.get("/", getAllStudents);
+router.get("/", sortFilter);
 router.get("/search", searchByName);
-router.get("/search", filterByMajor);
+router.get("/filter", filterByMajor);
 router.get("/:id", getStudentById);
 router.post("/", createStudent);
 router.put("/:id", updateStudent);
