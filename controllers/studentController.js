@@ -113,7 +113,7 @@ const filterByMajor = async (req, res) => {
 const sortFilter = async (req, res) => {
   try {
     const { sort } = req.query;
- 
+
     // default sort ( newest )
     let sortOption = {
       createdAt: -1,
@@ -139,6 +139,37 @@ const sortFilter = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+// pagination
+const pagination = async (req, res) => {
+  try {
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 1;
+
+    if (page < 1) {
+      page = 1;
+    }
+    if (limit < 1) {
+      limit = 5;
+    }
+
+    let skip = (page - 1) * limit;
+    const totalStudents = await Student.countDocuments();
+    const students = await Student.find().skip(skip).limit(limit);
+    const totalPages = Math.ceil(totalStudents / limit);
+
+    res.status(200).json({
+      currentPage: page,
+      limit: limit,
+      totalStudents: totalStudents,
+      totalPages: totalPages,
+      hasNextPages: page < totalPages,
+      hasPrevPages: page > 1,
+      students: students,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 export default {
   getAllStudents,
@@ -149,4 +180,5 @@ export default {
   searchByName,
   filterByMajor,
   sortFilter,
+  pagination
 };

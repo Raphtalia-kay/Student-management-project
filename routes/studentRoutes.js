@@ -9,9 +9,11 @@ const {
   deleteStudent,
   searchByName,
   filterByMajor,
-  sortFilter
+  sortFilter,
+  pagination,
 } = studentController;
 router.get("/", sortFilter);
+router.get("/pagination", pagination);
 router.get("/search", searchByName);
 router.get("/filter", filterByMajor);
 router.get("/:id", getStudentById);
