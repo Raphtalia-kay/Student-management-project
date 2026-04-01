@@ -1,3 +1,4 @@
+import { get } from "mongoose";
 import studentController from "../controllers/studentController.js";
 import express from "express";
 
@@ -7,15 +8,10 @@ const {
   createStudent,
   updateStudent,
   deleteStudent,
-  searchByName,
-  filterByMajor,
-  sortFilter,
-  pagination,
+  getAllStudents,
 } = studentController;
-router.get("/", sortFilter);
-router.get("/pagination", pagination);
-router.get("/search", searchByName);
-router.get("/filter", filterByMajor);
+
+router.get("/", getAllStudents);
 router.get("/:id", getStudentById);
 router.post("/", createStudent);
 router.put("/:id", updateStudent);

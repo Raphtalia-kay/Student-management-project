@@ -103,21 +103,45 @@ Full Create, Read, Update, Delete functionality:
 - Default sort: `createdAt` descending (newest first)
 - Invalid sort fields are ignored and fall back to default
 
-### 9. Routes (`routes/studentRoutes.js`)
+### 9. Pagination (`pagination`)
 
-| Method   | Path               | Handler          | Purpose              |
-| -------- | ------------------ | ---------------- | -------------------- |
-| `GET`    | `/students/`       | `sortFilter`     | List all (sorted)    |
-| `GET`    | `/students/search` | `searchByName`   | Search by name       |
-| `GET`    | `/students/filter` | `filterByMajor`  | Filter by major/name |
-| `GET`    | `/students/:id`    | `getStudentById` | Get one by ID        |
-| `POST`   | `/students/`       | `createStudent`  | Create new student   |
-| `PUT`    | `/students/:id`    | `updateStudent`  | Update by ID         |
-| `DELETE` | `/students/:id`    | `deleteStudent`  | Delete by ID         |
+- Endpoint: `GET /students/pagination?page=1&limit=5`
+- Query params:
+  - `page` — page number (default: 1, minimum: 1)
+  - `limit` — students per page (default: 1, falls back to 5 if < 1)
+- Uses `skip` and `limit` for offset-based pagination: `skip = (page - 1) * limit`
+- Counts total documents with `Student.countDocuments()` to calculate metadata
+- Response includes pagination metadata alongside the data:
+  ```json
+  {
+    "currentPage": 1,
+    "limit": 5,
+    "totalStudents": 23,
+    "totalPages": 5,
+    "hasNextPages": true,
+    "hasPrevPages": false,
+    "students": [...]
+  }
+  ```
+- `hasNextPages` and `hasPrevPages` are boolean helpers for client-side navigation
+- Total pages calculated with `Math.ceil(totalStudents / limit)` to handle partial last pages
 
-> **Route order matters:** Specific string routes (`/search`, `/filter`) are defined before the `/:id` param route so Express matches them first.
+### 10. Routes (`routes/studentRoutes.js`)
 
-### 10. Error Middleware (`middleware/errorMiddleware.js`)
+| Method   | Path                    | Handler          | Purpose              |
+| -------- | ----------------------- | ---------------- | -------------------- |
+| `GET`    | `/students/`            | `sortFilter`     | List all (sorted)    |
+| `GET`    | `/students/pagination`  | `pagination`     | Paginated list       |
+| `GET`    | `/students/search`      | `searchByName`   | Search by name       |
+| `GET`    | `/students/filter`      | `filterByMajor`  | Filter by major/name |
+| `GET`    | `/students/:id`         | `getStudentById` | Get one by ID        |
+| `POST`   | `/students/`            | `createStudent`  | Create new student   |
+| `PUT`    | `/students/:id`         | `updateStudent`  | Update by ID         |
+| `DELETE` | `/students/:id`         | `deleteStudent`  | Delete by ID         |
+
+> **Route order matters:** Specific string routes (`/search`, `/filter`, `/pagination`) are defined before the `/:id` param route so Express matches them first.
+
+### 11. Error Middleware (`middleware/errorMiddleware.js`)
 
 - File created as a placeholder
 - Not yet implemented — centralized error handling is a future task
@@ -130,6 +154,8 @@ Full Create, Read, Update, Delete functionality:
 - MongoDB query operators (`$regex`, `$options`)
 - Dynamic query building (filter objects constructed from optional params)
 - Sorting with direction control (ascending/descending)
+- Pagination with offset-based strategy (`skip` + `limit`)
+- Pagination metadata (total pages, current page, next/prev indicators)
 - Route ordering in Express (specific before parameterized)
 - ES module syntax throughout (`import`/`export`)
 - Environment variable management with dotenv
