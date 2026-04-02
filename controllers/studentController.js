@@ -1,29 +1,24 @@
+import studentDto from "../dtos/studentDto.js";
 import Student from "../models/Student.js";
 
+const { studentResponseDTO } = studentDto;
 const getAllStudents = async (req, res) => {
   try {
     const filter = {};
-    const { major, name } = req.query;
-    const searchName = req.query.name;
-    const { sort } = req.query;
-    let page = parseInt(req.query.page) || 1;
-    let limit = parseInt(req.query.limit) || 1;
 
-    if (searchName) {
+    const { major, name, sort } = req.query;
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 2;
+
+    if (name) {
       filter.name = {
-        $regex: searchName.trim(),
+        $regex: name.trim(),
         $options: "i",
       };
     }
 
     if (major) {
       filter.major = major;
-    }
-    if (name) {
-      filter.name = {
-        $regex: name.trim(),
-        $options: "i",
-      };
     }
     let sortOption = {
       createdAt: -1,
@@ -51,11 +46,12 @@ const getAllStudents = async (req, res) => {
     }
 
     let skip = (page - 1) * limit;
-    const totalStudents = await Student.countDocuments();
-    const students = await Student.find()
+    const totalStudents = await Student.countDocuments(filter);
+    const students = await Student.find(filter)
       .skip(skip)
       .limit(limit)
       .sort(sortOption);
+    const studentsDTO = students.map(studentResponseDTO);
     const totalPages = Math.ceil(totalStudents / limit);
 
     res.status(200).json({
@@ -65,7 +61,7 @@ const getAllStudents = async (req, res) => {
       totalPages: totalPages,
       hasNextPages: page < totalPages,
       hasPrevPages: page > 1,
-      students: students,
+      students: studentsDTO,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -78,7 +74,7 @@ const getStudentById = async (req, res) => {
     if (!student) {
       return res.status(404).json({ message: "Student Not Found" });
     }
-    res.status(200).json(student);
+    res.status(200).json(studentResponseDTO(student));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -118,7 +114,7 @@ const updateStudent = async (req, res) => {
       req.body,
       { new: true },
     );
-    res.status(201).json(updateStudent);
+    res.status(200).json(updateStudent);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -129,19 +125,8 @@ const deleteStudent = async (req, res) => {
     if (!student) {
       return res.status(404).json({ message: "Student Not Found" });
     }
-    const deleteStudent = await Student.findByIdAndDelete(req.params.id);
-    res.status(201).json(deleteStudent);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-const filterByMajor = async (req, res) => {
-  try {
-    const filter = {};
-
-    const students = await Student.find(filter);
-    res.status(200).json(students);
+    await Student.findByIdAndDelete(req.params.id);
+    res.status(200).json({ message: "Student deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
