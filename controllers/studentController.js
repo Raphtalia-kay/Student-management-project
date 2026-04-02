@@ -1,7 +1,8 @@
-import studentDto from "../dtos/studentDto.js";
+import studentDto from "../dtos/student.dto.js";
 import Student from "../models/Student.js";
 
-const { studentResponseDTO } = studentDto;
+const { studentRequestDTO, studentResponseDTO } = studentDto;
+
 const getAllStudents = async (req, res) => {
   try {
     const filter = {};
@@ -82,7 +83,8 @@ const getStudentById = async (req, res) => {
 
 const createStudent = async (req, res) => {
   try {
-    const { name, email, age, major } = req.body;
+    const data = studentRequestDTO(req.body);
+    const { name, email, age, major } = data;
     if (!name || !email || !age || !major) {
       return res.status(400).json({ message: "All fields are required" });
     }
@@ -105,15 +107,14 @@ const createStudent = async (req, res) => {
 
 const updateStudent = async (req, res) => {
   try {
+    const data = studentRequestDTO(req.body);
     const student = await Student.findById(req.params.id);
     if (!student) {
       return res.status(404).json({ message: "Studnet not found" });
     }
-    const updateStudent = await Student.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true },
-    );
+    const updateStudent = await Student.findByIdAndUpdate(req.params.id, data, {
+      new: true,
+    });
     res.status(200).json(updateStudent);
   } catch (error) {
     res.status(500).json({ message: error.message });
