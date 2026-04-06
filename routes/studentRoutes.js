@@ -14,6 +14,7 @@ const {
   updateStudent,
   deleteStudent,
   getAllStudents,
+  registerStudent,
 } = studentController;
 
 router.get("/", getAllStudents);
@@ -21,5 +22,7 @@ router.get("/:id", getStudentById);
 router.post("/", validate(createStudentSchema), createStudent);
 router.put("/:id", validate(updateStudentSchema), updateStudent);
 router.delete("/:id", deleteStudent);
+
+router.post("/register", registerStudent);
 
 export default router;

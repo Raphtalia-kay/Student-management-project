@@ -1,3 +1,4 @@
+import bcrypt from "bcrypt";
 import studentDto from "../dtos/student.dto.js";
 import Student from "../models/Student.js";
 
@@ -133,10 +134,44 @@ const deleteStudent = async (req, res) => {
   }
 };
 
+const registerStudent = async (req, res) => {
+  try {
+    const { name, email, age, password, major } = req.body;
+    if (!name || !email || !age || !password || !major) {
+      res.status(400).json({ message: "All fields are required" });
+    }
+    const existingStudent = await Student.findOne({ email });
+    if (existingStudent) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+    const hashpassword = await bcrypt.hash(password, 10);
+    const student = Student.create({
+      name,
+      email,
+      age,
+      major,
+      password: hashpassword,
+    });
+    res.status(201).json({
+      message: "Student registered successfully",
+      student: {
+        id: student._id,
+        name: student._name,
+        email: student._email,
+        major: student._major,
+        age: student._age,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export default {
   getAllStudents,
   getStudentById,
   createStudent,
   updateStudent,
   deleteStudent,
+  registerStudent,
 };
