@@ -13,3 +13,5 @@ export const updateStudentSchema = z.object({
   age: z.number().positive("Age must be positive").optional(),
   major: z.string().trim().optional(),
 });
+
+
