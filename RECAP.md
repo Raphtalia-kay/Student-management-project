@@ -21,20 +21,24 @@ student-management/
 ├── config/
 │   └── db.js                         # MongoDB connection logic
 ├── models/
-│   └── Student.js                    # Mongoose Student schema/model
+│   └── Student.js                    # Mongoose Student schema/model (now includes password field)
 ├── controllers/
-│   └── studentController.js          # All student-related logic
+│   ├── authController.js             # Registration, login, and profile logic
+│   └── studentController.js          # Student CRUD logic
 ├── routes/
-│   └── studentRoutes.js              # Express route definitions
+│   ├── authRoutes.js                 # Auth route definitions (register, login, profile)
+│   └── studentRoutes.js              # Student route definitions
 ├── middleware/
-│   ├── errorMiddleware.js            # (Placeholder - not yet implemented)
+│   ├── authMiddleware.js             # JWT token verification via cookies
 │   └── validateMiddleware.js         # Zod schema validation middleware
 ├── dtos/
 │   └── student.dto.js               # Request/Response DTOs
 ├── schema/
-│   └── student.schema.js            # Zod validation schemas
+│   ├── auth.schema.js               # Zod schemas for register/login
+│   └── student.schema.js            # Zod schemas for student CRUD
 ├── index.js                          # Entry point - Express server setup
-├── .env                              # Environment variables (MONGO_URI, PORT)
+├── dockerfile                        # Docker container config
+├── .env                              # Environment variables (MONGO_URI, PORT, JWT_SECRET)
 ├── .gitignore                        # Ignores node_modules and .env
 ├── RECAP.md                          # This file
 └── package.json
@@ -183,3 +187,131 @@ Two Zod schemas for request validation:
 - ES module syntax throughout (`import`/`export`)
 - Environment variable management with dotenv
 - Async/await with try-catch error handling
+
+### 12. Dockerization (`dockerfile`)
+
+- Built a Dockerfile to containerize the Express app
+- Uses `node:18` as the base image
+- Sets `/app` as the working directory inside the container
+- Copies `package*.json` first and runs `npm install` (leverages Docker layer caching — dependencies are only reinstalled when `package.json` changes)
+- Copies all project files after installing deps
+- Exposes port 3000
+- Runs the app with `npm start` (which uses `nodemon index.js`)
+
+### 13. User Registration with JWT (`controllers/authController.js` — `registerStudent`)
+
+- Added `bcrypt` and `jsonwebtoken` as new dependencies
+- **Registration flow:**
+  1. Accepts `name`, `email`, `age`, `password`, `major` from `req.body`
+  2. Checks all fields are present (returns 400 if missing)
+  3. Checks for duplicate email via `Student.findOne({ email })`
+  4. Hashes the password using `bcrypt.hash(password, 10)` — 10 salt rounds
+  5. Creates the student in the database with the hashed password
+  6. Returns 201 with the student data (excludes password from response)
+
+### 14. User Login with JWT & Cookies (`controllers/authController.js` — `loginStudent`)
+
+- **Login flow:**
+  1. Accepts `email` and `password` from `req.body`
+  2. Finds the student by email — returns generic "Invalid credentials" if not found (doesn't reveal whether email exists)
+  3. Compares plaintext password against stored hash using `bcrypt.compare()`
+  4. On success, generates a JWT token with `jwt.sign()`:
+     - Payload: `{ id: student._id, email: student.email }`
+     - Secret: `process.env.JWT_SECRET`
+     - Expiry: `1m` (1 minute — short for testing purposes)
+  5. Sets the token as an HTTP cookie named `cookietoken`:
+     - `httpOnly: true` — not accessible via JavaScript (XSS protection)
+     - `secure: false` — allows HTTP in development (should be `true` in production)
+     - `sameSite: "lax"` — cookie sent on top-level navigations (CSRF protection)
+     - `maxAge: 15 * 60 * 1000` — cookie expires in 15 minutes
+  6. Returns 200 with student data (excludes password)
+
+### 15. Auth Middleware (`middleware/authMiddleware.js`)
+
+- Protects routes that require authentication
+- **How it works:**
+  1. Reads the JWT from `req.cookies.cookietoken` (requires `cookie-parser` middleware)
+  2. If no token is found → returns 401 "No token provided"
+  3. Verifies the token using `jwt.verify(token, process.env.JWT_SECRET)`
+  4. If verification fails (expired or tampered) → returns 401 "Invalid or expired token"
+  5. On success, attaches the decoded payload (`{ id, email }`) to `req.user` and calls `next()`
+- Used on `GET /auth/profile` to identify the logged-in user
+
+### 16. Get Profile (`controllers/authController.js` — `getProfile`)
+
+- Protected route — requires valid JWT cookie (via `authMiddleware`)
+- Finds the student by `req.user.id` (set by auth middleware)
+- Uses `.select("-password")` to exclude the password hash from the response
+- Returns the full student document (minus password) or 404 if not found
+
+### 17. Auth Zod Schemas (`schema/auth.schema.js`)
+
+Two schemas for validating auth requests:
+
+- **`registerStudentSchema`** — validates registration input:
+  - `name`: string, trimmed, 1–20 chars
+  - `email`: valid email format
+  - `age`: positive number
+  - `major`: string, trimmed, 1–50 chars
+  - `password`: string, min 8 characters
+
+- **`loginStudentSchema`** — validates login input:
+  - `email`: valid email format
+  - `password`: string, min 8 characters
+
+### 18. Auth Routes (`routes/authRoutes.js`)
+
+| Method | Path             | Middleware                           | Handler           | Purpose              |
+| ------ | ---------------- | ------------------------------------ | ----------------- | -------------------- |
+| `POST` | `/auth/register` | `validate(registerStudentSchema)`    | `registerStudent` | Register new student |
+| `POST` | `/auth/login`    | `validate(loginStudentSchema)`       | `loginStudent`    | Login & get cookie   |
+| `GET`  | `/auth/profile`  | `authMiddleware`                     | `getProfile`      | Get logged-in user   |
+
+### 19. Separation of Auth and Student Concerns
+
+- Previously all logic was in `studentController.js` and `studentRoutes.js`
+- Auth-related logic (register, login, profile) was moved to dedicated files:
+  - `controllers/authController.js` — handles authentication logic
+  - `routes/authRoutes.js` — defines auth endpoints under `/auth`
+- Student routes (`/students`) remain focused on CRUD operations
+- The `errorMiddleware.js` placeholder was removed in favor of `authMiddleware.js`
+
+### 20. Cookie & CORS Setup (`index.js`)
+
+- Added `cookie-parser` middleware to parse cookies from incoming requests
+- Added `cors` middleware with specific configuration:
+  - `origin`: allows `http://localhost:3001` and `http://localhost:3000` (for frontend dev)
+  - `credentials: true` — allows cookies to be sent cross-origin (required for cookie-based auth)
+- Auth routes mounted at `/auth`
+- Port default changed from 3000 to 4000
+
+### 21. Student Model Update (`models/Student.js`)
+
+- Added `password` field to the Mongoose schema:
+  - Type: String, required
+  - Stores bcrypt-hashed passwords (never plaintext)
+
+## New Dependencies Added
+
+| Package         | Purpose                                          |
+| --------------- | ------------------------------------------------ |
+| `bcrypt`        | Password hashing (native C++ bindings)           |
+| `bcryptjs`      | Pure JS fallback for bcrypt (Docker compatibility)|
+| `jsonwebtoken`  | JWT creation and verification                    |
+| `cookie-parser` | Parse cookies from `req.cookies`                 |
+| `cors`          | Cross-Origin Resource Sharing middleware          |
+
+## New Environment Variables
+
+- `JWT_SECRET` — Secret key used to sign and verify JWT tokens
+
+## Key Concepts Covered (New)
+
+- Authentication vs Authorization
+- Password hashing with bcrypt (salting, cost factor)
+- JWT (JSON Web Tokens) — stateless authentication
+- Cookie-based token storage (httpOnly, secure, sameSite flags)
+- CORS configuration for credentialed requests
+- Route separation by domain (auth vs student)
+- Protecting routes with middleware (auth guard pattern)
+- Docker containerization (Dockerfile, layer caching, image building)

@@ -8,10 +8,11 @@ import {
 import { validate } from "../middleware/validateMiddleware.js";
 
 const router = express.Router();
-const { registerStudent, loginStudent, getProfile } = authController;
+const { registerStudent, loginStudent, getProfile, logoutStudent } = authController;
 
 router.post("/register", validate(registerStudentSchema), registerStudent);
 router.post("/login", validate(loginStudentSchema), loginStudent);
 router.get("/profile", authMiddleware, getProfile);
+router.get("/logout",logoutStudent)
 
 export default router;

@@ -59,7 +59,7 @@ const loginStudent = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "1m" },
     );
-    res.cookie("cookietoken", token, {
+    res.cookie("accesstoken", token, {
       httpOnly: true,
       secure: false,
       sameSite: "lax",
@@ -81,6 +81,10 @@ const loginStudent = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+const logoutStudent = (req,res) =>{
+  res.clearCookie("accesstoken");
+  res.status(200).json({ message : "Logged out successfully"})
+}
 const getProfile = async (req, res) => {
   try {
     const student = await Student.findById(req.user.id).select("-password");
@@ -96,4 +100,5 @@ export default {
   registerStudent,
   loginStudent,
   getProfile,
+  logoutStudent
 };
