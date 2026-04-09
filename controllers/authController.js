@@ -31,12 +31,14 @@ const registerStudent = async (req, res) => {
       },
     });
   } catch (error) {
+   
     res.status(500).json({ message: error.message });
   }
 };
 
 const loginStudent = async (req, res) => {
   try {
+    console.log("hello");
     const { email, password } = req.body;
     if (!email || !password) {
       return res
@@ -51,24 +53,37 @@ const loginStudent = async (req, res) => {
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
-    const token = jwt.sign(
+    const accesstoken = jwt.sign(
       {
         id: student._id,
         email: student.email,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1m" },
+      { expiresIn: "15m" },
     );
-    res.cookie("accesstoken", token, {
+    const refreshtoken = jwt.sign(
+      {
+        id: student._id,
+        email: student.email,
+      },
+      process.env.REFRESH_SECRET,
+      { expiresIn: "7d" },
+    );
+    res.cookie("accesstoken", accesstoken, {
       httpOnly: true,
       secure: false,
       sameSite: "lax",
       maxAge: 15 * 60 * 1000,
     });
+    res.cookie("refreshtoken", refreshtoken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 1000,
+    });
 
     res.status(200).json({
       message: "Login Successfully",
-
       student: {
         id: student._id,
         name: student.name,
@@ -78,13 +93,42 @@ const loginStudent = async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: error.message });
   }
 };
-const logoutStudent = (req,res) =>{
+
+const refreshAccessToken = (req, res) => {
+  const refreshToken = req.cookies.refreshtoken;
+  if (!refreshToken) {
+    return res.status(401).json({ message: "No refresh token" });
+  }
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET);
+    const newAccessToken = jwt.sign(
+      ({
+        id: decoded.id,
+        email: decoded.email,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "15m" }),
+    );
+
+    res.cookie("accesstoken", newAccessToken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      maxAge: 15 * 60 * 1000,
+    });
+    res.status(200).json({ message: "Access Token refreshed" });
+  } catch (error) {
+    return res.status(401).json({ message: "Invalid Refresh token" });
+  }
+};
+const logoutStudent = (req, res) => {
   res.clearCookie("accesstoken");
-  res.status(200).json({ message : "Logged out successfully"})
-}
+  res.status(200).json({ message: "Logged out successfully" });
+};
 const getProfile = async (req, res) => {
   try {
     const student = await Student.findById(req.user.id).select("-password");
@@ -100,5 +144,6 @@ export default {
   registerStudent,
   loginStudent,
   getProfile,
-  logoutStudent
+  logoutStudent,
+  refreshAccessToken,
 };
