@@ -39,7 +39,9 @@ const loginStudent = async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
-      return res.status(400).json({ message: "Email and Password are required" });
+      return res
+        .status(400)
+        .json({ message: "Email and Password are required" });
     }
     const student = await Student.findOne({ email });
     if (!student) {
@@ -55,12 +57,18 @@ const loginStudent = async (req, res) => {
         email: student.email,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" },
+      { expiresIn: "1m" },
     );
+    res.cookie("cookietoken", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      maxAge: 15 * 60 * 1000,
+    });
 
     res.status(200).json({
       message: "Login Successfully",
-      token,
+
       student: {
         id: student._id,
         name: student.name,

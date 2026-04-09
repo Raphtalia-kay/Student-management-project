@@ -5,6 +5,7 @@ import {
   loginStudentSchema,
   registerStudentSchema,
 } from "../schema/auth.schema.js";
+import { validate } from "../middleware/validateMiddleware.js";
 
 const router = express.Router();
 const { registerStudent, loginStudent, getProfile } = authController;
