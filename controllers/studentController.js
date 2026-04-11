@@ -1,6 +1,7 @@
 
 import studentDto from "../dtos/student.dto.js";
 import Student from "../models/Student.js";
+import bcrypt from "bcrypt";
 
 
 const { studentRequestDTO, studentResponseDTO } = studentDto;
@@ -86,19 +87,21 @@ const getStudentById = async (req, res) => {
 const createStudent = async (req, res) => {
   try {
     const data = studentRequestDTO(req.body);
-    const { name, email, age, major } = data;
-    if (!name || !email || !age || !major) {
+    const { name, email, age, major, password } = data;
+    if (!name || !email || !age || !major || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
     const existingStudent = await Student.findOne({ email });
     if (existingStudent) {
       return res.status(400).json({ message: "Email Already Exists" });
     }
+    const hashedPassword = await bcrypt.hash(password, 10);
     const student = await Student.create({
       name,
       email,
       age,
       major,
+      password: hashedPassword,
     });
     res.status(201).json(student);
   } catch (error) {

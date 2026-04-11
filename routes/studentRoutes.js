@@ -1,4 +1,3 @@
-import { get } from "mongoose";
 import studentController from "../controllers/studentController.js";
 import express from "express";
 import {

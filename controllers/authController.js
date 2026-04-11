@@ -13,7 +13,7 @@ const registerStudent = async (req, res) => {
       return res.status(400).json({ message: "Email already exists" });
     }
     const hashpassword = await bcrypt.hash(password, 10);
-    const student = Student.create({
+    const student = await Student.create({
       name,
       email,
       age,
@@ -57,6 +57,7 @@ const loginStudent = async (req, res) => {
       {
         id: student._id,
         email: student.email,
+        role : student.role
       },
       process.env.JWT_SECRET,
       { expiresIn: "15m" },
@@ -65,6 +66,7 @@ const loginStudent = async (req, res) => {
       {
         id: student._id,
         email: student.email,
+        role : student.role
       },
       process.env.REFRESH_SECRET,
       { expiresIn: "7d" },
@@ -79,7 +81,7 @@ const loginStudent = async (req, res) => {
       httpOnly: true,
       secure: false,
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 1000,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     res.status(200).json({
@@ -106,12 +108,13 @@ const refreshAccessToken = (req, res) => {
   try {
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET);
     const newAccessToken = jwt.sign(
-      ({
+      {
         id: decoded.id,
         email: decoded.email,
+        role : decoded.role
       },
       process.env.JWT_SECRET,
-      { expiresIn: "15m" }),
+      { expiresIn: "15m" },
     );
 
     res.cookie("accesstoken", newAccessToken, {
@@ -127,6 +130,7 @@ const refreshAccessToken = (req, res) => {
 };
 const logoutStudent = (req, res) => {
   res.clearCookie("accesstoken");
+  res.clearCookie("refreshtoken");
   res.status(200).json({ message: "Logged out successfully" });
 };
 const getProfile = async (req, res) => {
@@ -140,10 +144,15 @@ const getProfile = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+const adminDashboard = (req,res) => {
+  res.status(200).json({message : "Welcome to the admin dashboard"})
+}
 export default {
   registerStudent,
   loginStudent,
   getProfile,
   logoutStudent,
   refreshAccessToken,
+  adminDashboard
 };

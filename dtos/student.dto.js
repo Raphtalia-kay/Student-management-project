@@ -12,7 +12,8 @@ const studentRequestDTO = (body) =>{
         name : body.name?.trim(),
         email : body.email?.trim(),
         age:body.age,
-        major : body.major?.trim()
+        major : body.major?.trim(),
+        ...(body.password && { password: body.password }),
     }
 }
 export default {studentResponseDTO, studentRequestDTO}
